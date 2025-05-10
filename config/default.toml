@@ -1,7 +1,7 @@
 # Game Configuration
-width = 40
-height = 20
-tick_rate_ms = 100  # Lower value = faster snake
+width = 50    # Increased width
+height = 25   # Increased height
+tick_rate_ms = 100  # Speed of the snake
 
 # Display Configuration
 snake_char = "█"
