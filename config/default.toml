@@ -1,0 +1,9 @@
+# Game Configuration
+width = 40
+height = 20
+tick_rate_ms = 100  # Lower value = faster snake
+
+# Display Configuration
+snake_char = "█"
+food_char = "●"
+border_char = "█"

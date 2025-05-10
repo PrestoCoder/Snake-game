@@ -1,0 +1,13 @@
+[package]
+name = "snake-game"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+crossterm = "0.25"
+rand = "0.8"
+config = "0.13"
+log = "0.4"
+env_logger = "0.9"
+thiserror = "1.0"
+serde = { version = "1.0", features = ["derive"] }
