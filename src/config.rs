@@ -6,6 +6,12 @@ pub struct Config {
     pub width: u16,
     pub height: u16,
     pub tick_rate_ms: u64,
+    pub starting_level: u32,
+    pub max_levels: u32,
+    pub score_per_level: u32,
+    pub base_obstacles: u32,
+    pub obstacles_per_level: u32,
+    pub obstacle_sizes: Vec<u16>,
 }
 
 impl Config {

@@ -3,6 +3,16 @@ width = 50
 height = 25
 tick_rate_ms = 200  # Initial speed (will decrease as snake eats food)
 
+# Level Configuration
+starting_level = 1
+max_levels = 3      # Total number of levels
+score_per_level = 5 # Score needed to advance to next level
+
+# Obstacle Configuration
+base_obstacles = 4          # Number of obstacles in level 1
+obstacles_per_level = 2     # Additional obstacles for each level
+obstacle_sizes = [1, 2]     # Possible sizes for obstacles (1x1 or 2x2)
+
 # Display Configuration
 snake_char = "█"
 food_char = "●"

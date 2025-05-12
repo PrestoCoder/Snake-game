@@ -1,8 +1,8 @@
 use crate::{
     error::{GameError, Result},
-    types::{Direction, Point, Obstacle},
+    types::{Direction, Point, Obstacle, GameEndReason, LevelState},
+    config::Config,
 };
-use log::debug;
 use std::collections::VecDeque;
 use rand::Rng;
 
@@ -17,90 +17,117 @@ pub struct GameState {
     game_over: bool,
     obstacles: Vec<Obstacle>,
     speed_level: u32,
+    end_reason: Option<GameEndReason>,
+    level_state: LevelState,
+    base_obstacles: u32,
+    obstacles_per_level: u32,
+    obstacle_sizes: Vec<u16>,
 }
 
 impl GameState {
-    pub fn new(width: u16, height: u16) -> Self {
+    pub fn new(config: &Config) -> Self {
         let mut snake = VecDeque::new();
-        let center_x = width / 2;
-        let center_y = height / 2;
+        let center_x = config.width / 2;
+        let center_y = config.height / 2;
         
         // Initialize snake with 3 segments
         snake.push_back(Point::new(center_x - 2, center_y));
         snake.push_back(Point::new(center_x - 1, center_y));
         snake.push_back(Point::new(center_x, center_y));
 
-        let obstacles = Self::generate_obstacles(width, height);
-        let food = Self::generate_food_avoiding_all(width, height, &snake, &obstacles);
+        let level_state = LevelState::new(
+            config.starting_level,
+            config.max_levels,
+            config.score_per_level
+        );
+
+        let obstacles = Self::generate_obstacles(
+            config.width,
+            config.height,
+            config.base_obstacles,
+            config.obstacles_per_level,
+            level_state.current_level,
+            &config.obstacle_sizes,
+        );
+
+        let food = Self::generate_food_avoiding_all(config.width, config.height, &snake, &obstacles);
 
         Self {
             snake,
             food,
             direction: Direction::Right,
             score: 0,
-            dimensions: (width, height),
+            dimensions: (config.width, config.height),
             game_over: false,
             obstacles,
             speed_level: 1,
+            end_reason: None,
+            level_state,
+            base_obstacles: config.base_obstacles,
+            obstacles_per_level: config.obstacles_per_level,
+            obstacle_sizes: config.obstacle_sizes.clone(),
         }
     }
 
-    fn generate_obstacles(width: u16, height: u16) -> Vec<Obstacle> {
-        let mut obstacles = Vec::new();
-        
-        // Left side obstacles
-        obstacles.push(Obstacle::new_rectangle(
-            Point::new(width / 4, height / 4),
-            2,
-            2,
-        ));
-
-        // Right side obstacles
-        obstacles.push(Obstacle::new_rectangle(
-            Point::new(3 * width / 4, height / 4),
-            2,
-            2,
-        ));
-
-        // Top center
-        obstacles.push(Obstacle::new_rectangle(
-            Point::new(width / 2 - 1, height / 4),
-            2,
-            2,
-        ));
-
-        // Bottom center
-        obstacles.push(Obstacle::new_rectangle(
-            Point::new(width / 2 - 1, 3 * height / 4),
-            2,
-            2,
-        ));
-
-        // Add some small single-block obstacles
-        obstacles.push(Obstacle::new_rectangle(
-            Point::new(width / 3, height / 2),
-            1,
-            1,
-        ));
-
-        obstacles.push(Obstacle::new_rectangle(
-            Point::new(2 * width / 3, height / 2),
-            1,
-            1,
-        ));
-
-        obstacles
-    }
-
     pub fn get_tick_rate(&self) -> u64 {
-        // Start at 200ms and decrease with each level
-        // But don't go below 50ms to keep the game playable
         let base_speed: u64 = 200;
-        let speed_decrease: u64 = 10;  // Decrease by 10ms per level
+        let speed_decrease: u64 = 10;
         let min_speed: u64 = 50;
 
         base_speed.saturating_sub(speed_decrease * (self.speed_level - 1) as u64)
             .max(min_speed)
+    }
+
+    fn generate_obstacles(
+        width: u16,
+        height: u16,
+        base_count: u32,
+        per_level: u32,
+        current_level: u32,
+        sizes: &[u16],
+    ) -> Vec<Obstacle> {
+        let mut obstacles: Vec<Obstacle> = Vec::new();  // Added type annotation
+        let mut rng = rand::thread_rng();
+        
+        // Calculate total obstacles for current level
+        let total_obstacles = base_count + (per_level * (current_level - 1));
+        
+        for _ in 0..total_obstacles {
+            let size = sizes[rng.gen_range(0..sizes.len())];
+            let mut valid = false;
+            let mut attempts = 0;
+            
+            // Try to place obstacle in valid location
+            while !valid && attempts < 100 {
+                let x = rng.gen_range(width / 4..3 * width / 4);
+                let y = rng.gen_range(height / 4..3 * height / 4);
+                
+                // Check if position is far enough from center and other obstacles
+                let new_obstacle = Obstacle::new_rectangle(Point::new(x, y), size, size);
+                valid = true;
+                
+                // Check distance from other obstacles
+                'outer: for existing in &obstacles {
+                    for point in &new_obstacle.blocks {
+                        for other_point in &existing.blocks {
+                            if manhattan_distance(point, other_point) < 3 {
+                                valid = false;
+                                break 'outer;
+                            }
+                        }
+                    }
+                }
+                
+                if valid {
+                    obstacles.push(new_obstacle);
+                    break;
+                }
+                
+                attempts += 1;
+            }
+        }
+        
+        obstacles
     }
 
     fn generate_food_avoiding_all(
@@ -137,23 +164,43 @@ impl GameState {
         
         let new_head = current_head.translate(&self.direction);
 
-        debug!("Current head: ({}, {}), New head: ({}, {}), Direction: {:?}", 
-            current_head.x, current_head.y, new_head.x, new_head.y, self.direction);
-
         if self.is_wall_collision(&new_head) || 
            self.is_self_collision() ||
            Self::is_obstacle_collision(&new_head, &self.obstacles) {
-            debug!("Collision detected at ({}, {})", new_head.x, new_head.y);
             self.game_over = true;
+            self.end_reason = Some(GameEndReason::Collision);
             return Ok(());
         }
 
         self.snake.push_back(new_head);
 
         if new_head == self.food {
-            debug!("Food eaten at ({}, {})", self.food.x, self.food.y);
             self.score += 1;
             self.speed_level += 1;
+
+            // Check for level advancement
+            if self.level_state.should_advance(self.score) {
+                self.level_state.advance();
+                
+                // Generate new obstacles for the new level
+                self.obstacles = Self::generate_obstacles(
+                    self.dimensions.0,
+                    self.dimensions.1,
+                    self.base_obstacles,
+                    self.obstacles_per_level,
+                    self.level_state.current_level,
+                    &self.obstacle_sizes,
+                );
+            }
+
+            // Check for final victory (completed all levels)
+            if self.level_state.current_level == self.level_state.max_levels &&
+               self.score >= self.level_state.score_per_level * self.level_state.max_levels {
+                self.game_over = true;
+                self.end_reason = Some(GameEndReason::Victory);
+                return Ok(());
+            }
+
             self.food = Self::generate_food_avoiding_all(
                 self.dimensions.0,
                 self.dimensions.1,
@@ -195,4 +242,13 @@ impl GameState {
     pub fn is_game_over(&self) -> bool { self.game_over }
     pub fn obstacles(&self) -> &Vec<Obstacle> { &self.obstacles }
     pub fn speed_level(&self) -> u32 { self.speed_level }
+    pub fn end_reason(&self) -> Option<GameEndReason> { self.end_reason }
+    pub fn current_level(&self) -> u32 { self.level_state.current_level }
+    pub fn max_levels(&self) -> u32 { self.level_state.max_levels }
+    pub fn score_needed_for_next(&self) -> Option<u32> { self.level_state.score_needed_for_next() }
+}
+
+// Helper function for obstacle placement
+fn manhattan_distance(p1: &Point, p2: &Point) -> u16 {
+    ((p1.x as i32 - p2.x as i32).abs() + (p1.y as i32 - p2.y as i32).abs()) as u16
 }

@@ -1,7 +1,7 @@
 use crate::{
     error::Result,
     game::GameState,
-    types::{Point, Obstacle},
+    types::{Point, Obstacle, GameEndReason},
 };
 use crossterm::{
     cursor::{Hide, MoveTo, Show},
@@ -46,31 +46,23 @@ impl Renderer {
     }
 
     pub fn render(&mut self, game_state: &GameState) -> Result<()> {
-        // Clear screen
         self.stdout.queue(Clear(ClearType::All))?;
         
-        // Draw borders
         self.draw_borders()?;
-        
-        // Draw obstacles
         self.draw_obstacles(game_state.obstacles())?;
         
-        // Draw snake
         for point in game_state.snake() {
             self.draw_point(point, Color::Green, Color::Reset, "█")?;
         }
         
-        // Draw food
         self.draw_point(game_state.food(), Color::Red, Color::Reset, "●")?;
         
-        // Draw score and speed
-        self.draw_score(game_state.score(), game_state.speed_level())?;
+        self.draw_score(game_state)?;
 
         if game_state.is_game_over() {
-            self.draw_game_over()?;
+            self.draw_game_over(game_state)?;
         }
 
-        // Flush all queued changes
         self.stdout.flush()?;
         Ok(())
     }
@@ -140,12 +132,23 @@ impl Renderer {
         Ok(())
     }
 
-    fn draw_score(&mut self, score: u32, speed_level: u32) -> Result<()> {
-        let stats_text = format!(" Score: {} | Speed: {} ", score, speed_level);
+    fn draw_score(&mut self, game_state: &GameState) -> Result<()> {
+        let next_score = game_state.score_needed_for_next()
+            .map(|s| format!("/{}", s))
+            .unwrap_or_else(|| "".to_string());
+
+        let stats_text = format!(
+            " Level: {}/{} | Score: {}{} | Speed: {} ", 
+            game_state.current_level(),
+            game_state.max_levels(),
+            game_state.score(),
+            next_score,
+            game_state.speed_level(),
+        );
+        
         let x = 2;
         let y = self.dimensions.1;
 
-        // Draw score with background
         self.stdout
             .queue(MoveTo(x, y))?
             .queue(SetForegroundColor(Color::White))?
@@ -156,17 +159,40 @@ impl Renderer {
         Ok(())
     }
 
-    fn draw_game_over(&mut self) -> Result<()> {
-        let game_over_text = " GAME OVER! Press any key to exit ";
-        let x = (self.dimensions.0 - game_over_text.len() as u16) / 2;
+    fn draw_game_over(&mut self, game_state: &GameState) -> Result<()> {
+        let message = match game_state.end_reason() {
+            Some(GameEndReason::Victory) => format!(" VICTORY! Final Score: {} ", game_state.score()),
+            _ => " GAME OVER! Press any key to exit ".to_string(),
+        };
+
+        let x = (self.dimensions.0 - message.len() as u16) / 2;
         let y = self.dimensions.1 / 2;
+
+        // Use green for victory, red for game over
+        let bg_color = match game_state.end_reason() {
+            Some(GameEndReason::Victory) => Color::Green,
+            _ => Color::Red,
+        };
 
         self.stdout
             .queue(MoveTo(x, y))?
             .queue(SetForegroundColor(Color::White))?
-            .queue(SetBackgroundColor(Color::Red))?
-            .queue(Print(game_over_text))?
+            .queue(SetBackgroundColor(bg_color))?
+            .queue(Print(&message))?
             .queue(SetBackgroundColor(Color::Reset))?;
+
+        // Show target score for current level
+        if let Some(next_score) = game_state.score_needed_for_next() {
+            let target_text = format!(" Target Score: {} ", next_score);
+            let tx = (self.dimensions.0 - target_text.len() as u16) / 2;
+            
+            self.stdout
+                .queue(MoveTo(tx, y - 2))?
+                .queue(SetForegroundColor(Color::White))?
+                .queue(SetBackgroundColor(Color::DarkBlue))?
+                .queue(Print(&target_text))?
+                .queue(SetBackgroundColor(Color::Reset))?;
+        }
 
         Ok(())
     }

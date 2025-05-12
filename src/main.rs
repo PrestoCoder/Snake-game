@@ -32,7 +32,7 @@ fn run_game() -> Result<()> {
     let config = Config::load()?;
     
     // Initialize game components
-    let mut game_state = GameState::new(config.width, config.height);
+    let mut game_state = GameState::new(&config);
     let mut renderer = Renderer::new(config.width, config.height);
     let input_handler = InputHandler::new();
 
