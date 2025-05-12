@@ -1,7 +1,7 @@
 # Game Configuration
-width = 50    # Increased width
-height = 25   # Increased height
-tick_rate_ms = 100  # Speed of the snake
+width = 50
+height = 25
+tick_rate_ms = 200  # Initial speed (will decrease as snake eats food)
 
 # Display Configuration
 snake_char = "█"

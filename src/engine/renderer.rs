@@ -1,7 +1,7 @@
 use crate::{
     error::Result,
     game::GameState,
-    types::Point,
+    types::{Point, Obstacle},
 };
 use crossterm::{
     cursor::{Hide, MoveTo, Show},
@@ -52,16 +52,19 @@ impl Renderer {
         // Draw borders
         self.draw_borders()?;
         
+        // Draw obstacles
+        self.draw_obstacles(game_state.obstacles())?;
+        
         // Draw snake
         for point in game_state.snake() {
-            self.draw_point(point, Color::Green, Color::Black, "█")?;
+            self.draw_point(point, Color::Green, Color::Reset, "█")?;
         }
         
-        // Draw food with a different character
-        self.draw_point(game_state.food(), Color::Red, Color::Black, "●")?;
+        // Draw food
+        self.draw_point(game_state.food(), Color::Red, Color::Reset, "●")?;
         
-        // Draw score with a border
-        self.draw_score(game_state.score())?;
+        // Draw score and speed
+        self.draw_score(game_state.score(), game_state.speed_level())?;
 
         if game_state.is_game_over() {
             self.draw_game_over()?;
@@ -78,7 +81,7 @@ impl Renderer {
             .queue(SetForegroundColor(Color::Blue))?
             .queue(SetBackgroundColor(Color::Blue))?;
 
-        // Draw horizontal borders (top and bottom) with thickness
+        // Draw horizontal borders
         for y in 0..BORDER_THICKNESS {
             // Top border
             for x in 0..self.dimensions.0 {
@@ -94,7 +97,7 @@ impl Renderer {
             }
         }
 
-        // Draw vertical borders (left and right) with thickness
+        // Draw vertical borders
         for x in 0..BORDER_THICKNESS {
             // Left border
             for y in 0..self.dimensions.1 {
@@ -118,36 +121,36 @@ impl Renderer {
         Ok(())
     }
 
+    fn draw_obstacles(&mut self, obstacles: &Vec<Obstacle>) -> Result<()> {
+        for obstacle in obstacles {
+            for point in &obstacle.blocks {
+                self.draw_point(point, Color::DarkGrey, Color::DarkGrey, "█")?;
+            }
+        }
+        Ok(())
+    }
+
     fn draw_point(&mut self, point: &Point, fg_color: Color, bg_color: Color, symbol: &str) -> Result<()> {
         self.stdout
             .queue(MoveTo(point.x, point.y))?
             .queue(SetForegroundColor(fg_color))?
             .queue(SetBackgroundColor(bg_color))?
-            .queue(Print(symbol))?;
+            .queue(Print(symbol))?
+            .queue(SetBackgroundColor(Color::Reset))?;
         Ok(())
     }
 
-    fn draw_score(&mut self, score: u32) -> Result<()> {
-        let score_text = format!(" Score: {} ", score);
+    fn draw_score(&mut self, score: u32, speed_level: u32) -> Result<()> {
+        let stats_text = format!(" Score: {} | Speed: {} ", score, speed_level);
         let x = 2;
         let y = self.dimensions.1;
 
-        // Draw score box
-        self.stdout
-            .queue(MoveTo(x - 1, y))?
-            .queue(SetForegroundColor(Color::White))?
-            .queue(SetBackgroundColor(Color::DarkBlue))?;
-
         // Draw score with background
-        for (i, c) in score_text.chars().enumerate() {
-            self.stdout
-                .queue(MoveTo(x + i as u16, y))?
-                .queue(Print(c))?;
-        }
-
-        // Reset colors
         self.stdout
-            .queue(SetForegroundColor(Color::Reset))?
+            .queue(MoveTo(x, y))?
+            .queue(SetForegroundColor(Color::White))?
+            .queue(SetBackgroundColor(Color::DarkBlue))?
+            .queue(Print(&stats_text))?
             .queue(SetBackgroundColor(Color::Reset))?;
 
         Ok(())
@@ -158,16 +161,11 @@ impl Renderer {
         let x = (self.dimensions.0 - game_over_text.len() as u16) / 2;
         let y = self.dimensions.1 / 2;
 
-        // Draw game over box with background
         self.stdout
             .queue(MoveTo(x, y))?
             .queue(SetForegroundColor(Color::White))?
             .queue(SetBackgroundColor(Color::Red))?
-            .queue(Print(game_over_text))?;
-
-        // Reset colors
-        self.stdout
-            .queue(SetForegroundColor(Color::Reset))?
+            .queue(Print(game_over_text))?
             .queue(SetBackgroundColor(Color::Reset))?;
 
         Ok(())

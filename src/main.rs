@@ -45,20 +45,22 @@ fn run_game() -> Result<()> {
     // Initial render
     renderer.render(&game_state)?;
 
-    // Game loop
-    let tick_rate = Duration::from_millis(100); // Slower initial speed
+    // Game loop timing
     let frame_rate = Duration::from_millis(33); // ~30 FPS
     let mut last_tick = Instant::now();
     let mut last_render = Instant::now();
 
     while !game_state.is_game_over() {
-        // Handle input with a small timeout
+        // Handle input
         if let Some(direction) = input_handler.get_input()? {
             game_state.change_direction(direction);
         }
 
-        // Update game state at tick rate
-        if last_tick.elapsed() >= tick_rate {
+        // Get current tick rate based on speed level
+        let current_tick_rate = Duration::from_millis(game_state.get_tick_rate());
+
+        // Update game state at current speed
+        if last_tick.elapsed() >= current_tick_rate {
             game_state.update()?;
             last_tick = Instant::now();
         }
@@ -70,18 +72,16 @@ fn run_game() -> Result<()> {
         }
 
         // Small sleep to prevent CPU hogging
-        thread::sleep(Duration::from_millis(10));
+        thread::sleep(Duration::from_millis(16));
     }
 
-    // Show game over screen and wait for input
+    // Show game over screen
     renderer.render(&game_state)?;
-    thread::sleep(Duration::from_secs(1));
+    
+    // Wait for a moment before exit
+    thread::sleep(Duration::from_secs(2));
 
-    // Wait for any key press before exiting
-    while let Ok(None) = input_handler.get_input() {
-        thread::sleep(Duration::from_millis(100));
-    }
-
+    // Cleanup
     renderer.cleanup()?;
     Ok(())
 }
