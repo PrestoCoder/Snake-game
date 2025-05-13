@@ -4,7 +4,6 @@ use crate::{
     entities::{Point, Obstacle},
     gameplay::{GameState as GameStateEnum, GameEndReason},
 };
-use super::DisplayManager;
 use crossterm::{
     cursor::{Hide, MoveTo, Show},
     execute,
