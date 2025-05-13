@@ -5,4 +5,4 @@ pub mod entities;
 pub mod config;
 pub mod utils;
 
-pub use utils::error::{Result, GameError};
+pub use utils::{Result, GameError};
