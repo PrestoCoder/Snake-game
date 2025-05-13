@@ -9,14 +9,28 @@ use snake_game::{
 use std::{
     time::{Duration, Instant},
     thread,
+    fs::OpenOptions,
 };
 use crossterm::{
     terminal::{enable_raw_mode, disable_raw_mode},
     event::KeyCode,
     Result as CrosstermResult,
 };
+use env_logger::{Builder, Target};
 
 fn main() -> CrosstermResult<()> {
+    // Initialize logging to file
+    let file = OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open("snake_game.log")
+        .unwrap();
+
+    Builder::new()
+        .target(Target::Pipe(Box::new(file)))
+        .filter_level(log::LevelFilter::Debug)
+        .init();
+
     // Enable raw mode
     enable_raw_mode()?;
 
@@ -49,7 +63,7 @@ fn run_game() -> Result<()> {
     renderer.render(&game_state)?;
 
     // Game loop timing
-    let frame_rate = Duration::from_millis(33); // ~30 FPS
+    let frame_rate = Duration::from_millis(50); // ~30 FPS
     let mut last_tick = Instant::now();
     let mut last_render = Instant::now();
 

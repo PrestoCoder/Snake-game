@@ -6,7 +6,7 @@ pub fn get_pattern(width: u16, height: u16) -> ObstaclePattern {
     let inner_offset = 5;
     let outer_offset = 8;
 
-    let mut positions = vec![
+    let positions = vec![
         // Inner cross
         (center_x - inner_offset, center_y - 1),
         (center_x + inner_offset - 2, center_y - 1),

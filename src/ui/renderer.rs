@@ -9,7 +9,7 @@ use crossterm::{
     cursor::{Hide, MoveTo, Show},
     execute,
     style::{Color, Print, SetForegroundColor, SetBackgroundColor},
-    terminal::{Clear, ClearType, EnterAlternateScreen, LeaveAlternateScreen},
+    terminal::{EnterAlternateScreen, LeaveAlternateScreen, enable_raw_mode, disable_raw_mode},
     QueueableCommand,
 };
 use std::io::{stdout, Write, Stdout};
@@ -18,19 +18,23 @@ use crate::utils::constants::BORDER_THICKNESS;
 pub struct Renderer {
     dimensions: (u16, u16),
     stdout: Stdout,
-    display_manager: DisplayManager,
+    previous_frame: Vec<Vec<(char, Color, Color)>>,
+    current_frame: Vec<Vec<(char, Color, Color)>>,
 }
 
 impl Renderer {
     pub fn new(width: u16, height: u16) -> Self {
+        let empty_frame = vec![vec![(' ', Color::Reset, Color::Reset); width as usize]; height as usize];
         Self {
             dimensions: (width, height),
             stdout: stdout(),
-            display_manager: DisplayManager::new(width, height),
+            previous_frame: empty_frame.clone(),
+            current_frame: empty_frame,
         }
     }
 
     pub fn init(&mut self) -> Result<()> {
+        enable_raw_mode()?;
         execute!(
             self.stdout,
             EnterAlternateScreen,
@@ -45,100 +49,109 @@ impl Renderer {
             Show,
             LeaveAlternateScreen,
         )?;
+        disable_raw_mode()?;
         Ok(())
     }
 
     pub fn render(&mut self, game_state: &GameState) -> Result<()> {
-        self.stdout.queue(Clear(ClearType::All))?;
-        
-        match game_state.game_state() {
-            GameStateEnum::Playing => {
-                self.draw_borders()?;
-                self.draw_obstacles(game_state.obstacles())?;
-                
-                for point in game_state.snake().body() {
-                    self.draw_point(point, Color::Green, Color::Reset, "█")?;
-                }
-                
-                self.draw_point(game_state.food().position(), Color::Red, Color::Reset, "●")?;
-                self.draw_status(game_state)?;
-            }
-            GameStateEnum::LevelTransition => {
-                self.draw_level_transition(game_state)?;
-            }
-            GameStateEnum::GameOver(reason) => {
-                self.draw_game_over(game_state, reason)?;
+        // Clear current frame
+        for row in self.current_frame.iter_mut() {
+            for cell in row.iter_mut() {
+                *cell = (' ', Color::Reset, Color::Reset);
             }
         }
 
+        // Draw game elements to buffer
+        match game_state.game_state() {
+            GameStateEnum::Playing => {
+                self.draw_to_buffer_borders()?;
+                self.draw_to_buffer_obstacles(game_state.obstacles())?;
+                
+                for point in game_state.snake().body() {
+                    self.set_buffer_cell(point, '█', Color::Green, Color::Reset)?;
+                }
+                
+                self.set_buffer_cell(game_state.food().position(), '●', Color::Red, Color::Reset)?;
+                self.draw_to_buffer_status(game_state)?;
+            }
+            GameStateEnum::LevelTransition => {
+                self.draw_to_buffer_transition(game_state)?;
+            }
+            GameStateEnum::GameOver(reason) => {
+                self.draw_to_buffer_game_over(game_state, reason)?;
+            }
+        }
+
+        // Render only changed cells
+        for y in 0..self.dimensions.1 as usize {
+            for x in 0..self.dimensions.0 as usize {
+                if self.current_frame[y][x] != self.previous_frame[y][x] {
+                    let (ch, fg, bg) = self.current_frame[y][x];
+                    self.stdout
+                        .queue(MoveTo(x as u16, y as u16))?
+                        .queue(SetForegroundColor(fg))?
+                        .queue(SetBackgroundColor(bg))?
+                        .queue(Print(ch))?;
+                }
+            }
+        }
+
+        // Flush changes
         self.stdout.flush()?;
+
+        // Swap buffers
+        std::mem::swap(&mut self.current_frame, &mut self.previous_frame);
+
         Ok(())
     }
 
-    fn draw_borders(&mut self) -> Result<()> {
-        self.stdout
-            .queue(SetForegroundColor(Color::Blue))?
-            .queue(SetBackgroundColor(Color::Blue))?;
+    fn set_buffer_cell(&mut self, point: &Point, ch: char, fg: Color, bg: Color) -> Result<()> {
+        if point.x < self.dimensions.0 && point.y < self.dimensions.1 {
+            self.current_frame[point.y as usize][point.x as usize] = (ch, fg, bg);
+        }
+        Ok(())
+    }
 
+    fn draw_to_buffer_borders(&mut self) -> Result<()> {
         // Draw horizontal borders
         for y in 0..BORDER_THICKNESS {
-            // Top border
             for x in 0..self.dimensions.0 {
-                self.stdout
-                    .queue(MoveTo(x, y))?
-                    .queue(Print("█"))?;
-            }
-            // Bottom border
-            for x in 0..self.dimensions.0 {
-                self.stdout
-                    .queue(MoveTo(x, self.dimensions.1 - 1 - y))?
-                    .queue(Print("█"))?;
+                self.set_buffer_cell(&Point::new(x, y), '█', Color::Blue, Color::Blue)?;
+                self.set_buffer_cell(
+                    &Point::new(x, self.dimensions.1 - 1 - y),
+                    '█',
+                    Color::Blue,
+                    Color::Blue,
+                )?;
             }
         }
 
         // Draw vertical borders
         for x in 0..BORDER_THICKNESS {
-            // Left border
             for y in 0..self.dimensions.1 {
-                self.stdout
-                    .queue(MoveTo(x, y))?
-                    .queue(Print("█"))?;
-            }
-            // Right border
-            for y in 0..self.dimensions.1 {
-                self.stdout
-                    .queue(MoveTo(self.dimensions.0 - 1 - x, y))?
-                    .queue(Print("█"))?;
+                self.set_buffer_cell(&Point::new(x, y), '█', Color::Blue, Color::Blue)?;
+                self.set_buffer_cell(
+                    &Point::new(self.dimensions.0 - 1 - x, y),
+                    '█',
+                    Color::Blue,
+                    Color::Blue,
+                )?;
             }
         }
-
-        self.stdout
-            .queue(SetForegroundColor(Color::Reset))?
-            .queue(SetBackgroundColor(Color::Reset))?;
 
         Ok(())
     }
 
-    fn draw_obstacles(&mut self, obstacles: &[Obstacle]) -> Result<()> {
+    fn draw_to_buffer_obstacles(&mut self, obstacles: &[Obstacle]) -> Result<()> {
         for obstacle in obstacles {
             for point in &obstacle.blocks {
-                self.draw_point(point, Color::DarkGrey, Color::DarkGrey, "█")?;
+                self.set_buffer_cell(point, '█', Color::DarkGrey, Color::DarkGrey)?;
             }
         }
         Ok(())
     }
 
-    fn draw_point(&mut self, point: &Point, fg_color: Color, bg_color: Color, symbol: &str) -> Result<()> {
-        self.stdout
-            .queue(MoveTo(point.x, point.y))?
-            .queue(SetForegroundColor(fg_color))?
-            .queue(SetBackgroundColor(bg_color))?
-            .queue(Print(symbol))?
-            .queue(SetBackgroundColor(Color::Reset))?;
-        Ok(())
-    }
-
-    fn draw_status(&mut self, game_state: &GameState) -> Result<()> {
+    fn draw_to_buffer_status(&mut self, game_state: &GameState) -> Result<()> {
         let next_score = game_state.score_needed_for_next()
             .map(|s| format!("/{}", s))
             .unwrap_or_else(|| "".to_string());
@@ -152,18 +165,39 @@ impl Renderer {
             game_state.speed_level(),
         );
 
-        self.display_manager.draw_status_bar(&mut self.stdout, &stats_text, Color::DarkBlue)
+        for (i, ch) in stats_text.chars().enumerate() {
+            self.set_buffer_cell(
+                &Point::new(2 + i as u16, self.dimensions.1),
+                ch,
+                Color::White,
+                Color::DarkBlue,
+            )?;
+        }
+
+        Ok(())
     }
 
-    fn draw_level_transition(&mut self, game_state: &GameState) -> Result<()> {
-        self.display_manager.draw_centered_box(
-            &mut self.stdout,
-            game_state.transition_message(),
-            Color::DarkBlue,
-        )
+    fn draw_to_buffer_transition(&mut self, game_state: &GameState) -> Result<()> {
+        let message = game_state.transition_message();
+        let lines: Vec<&str> = message.split('\n').collect();
+        let y_start = (self.dimensions.1 / 2) - (lines.len() as u16 / 2);
+
+        for (i, line) in lines.iter().enumerate() {
+            let x_start = (self.dimensions.0 - line.len() as u16) / 2;
+            for (j, ch) in line.chars().enumerate() {
+                self.set_buffer_cell(
+                    &Point::new(x_start + j as u16, y_start + i as u16),
+                    ch,
+                    Color::White,
+                    Color::DarkBlue,
+                )?;
+            }
+        }
+
+        Ok(())
     }
 
-    fn draw_game_over(&mut self, game_state: &GameState, reason: GameEndReason) -> Result<()> {
+    fn draw_to_buffer_game_over(&mut self, game_state: &GameState, reason: GameEndReason) -> Result<()> {
         let message = match reason {
             GameEndReason::Victory => format!(
                 "VICTORY!\nFinal Score: {}\nAll {} Levels Complete!\nPress 'q' to quit",
@@ -183,7 +217,22 @@ impl Renderer {
             GameEndReason::Collision => Color::Red,
         };
 
-        self.display_manager.draw_centered_box(&mut self.stdout, &message, bg_color)
+        let lines: Vec<&str> = message.split('\n').collect();
+        let y_start = (self.dimensions.1 / 2) - (lines.len() as u16 / 2);
+
+        for (i, line) in lines.iter().enumerate() {
+            let x_start = (self.dimensions.0 - line.len() as u16) / 2;
+            for (j, ch) in line.chars().enumerate() {
+                self.set_buffer_cell(
+                    &Point::new(x_start + j as u16, y_start + i as u16),
+                    ch,
+                    Color::White,
+                    bg_color,
+                )?;
+            }
+        }
+
+        Ok(())
     }
 }
 
