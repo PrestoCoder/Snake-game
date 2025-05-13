@@ -1,6 +1,6 @@
 use crate::{
     entities::{Point, Obstacle},
-    utils::constants::BORDER_THICKNESS,
+    config::BORDER_THICKNESS,
 };
 use std::collections::VecDeque;
 

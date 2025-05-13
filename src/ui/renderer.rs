@@ -3,6 +3,7 @@ use crate::{
     core::GameState,
     entities::{Point, Obstacle},
     gameplay::{GameState as GameStateEnum, GameEndReason},
+    config::BORDER_THICKNESS
 };
 use crossterm::{
     cursor::{Hide, MoveTo, Show},
@@ -12,7 +13,6 @@ use crossterm::{
     QueueableCommand,
 };
 use std::io::{stdout, Write, Stdout};
-use crate::utils::constants::BORDER_THICKNESS;
 
 pub struct Renderer {
     dimensions: (u16, u16),

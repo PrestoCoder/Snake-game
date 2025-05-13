@@ -1,6 +1,6 @@
 use super::Point;
 use rand::Rng;
-use crate::utils::constants::BORDER_THICKNESS;
+use crate::config::BORDER_THICKNESS;
 
 pub struct Food {
     position: Point,

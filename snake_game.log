@@ -183,3 +183,64 @@
 [2025-05-13T07:24:36Z DEBUG snake_game::core::state] Resetting level 1
 [2025-05-13T07:24:36Z DEBUG snake_game::core::state] Generated 5 obstacles for level 1
 [2025-05-13T07:24:39Z DEBUG snake_game::core::state] Collision detected - Game Over
+[2025-05-13T07:49:22Z DEBUG snake_game::core::state] Initializing game with dimensions: 50x25
+[2025-05-13T07:49:22Z DEBUG snake_game::core::state] Level settings - Start: 1, Max: 3, Score per level: 5
+[2025-05-13T07:49:22Z DEBUG snake_game::core::state] Resetting level 1
+[2025-05-13T07:49:22Z DEBUG snake_game::core::state] Generated 5 obstacles for level 1
+[2025-05-13T07:49:31Z DEBUG snake_game::core::state] Food collected! Score: 1, Level: 1
+[2025-05-13T07:49:31Z DEBUG snake_game::gameplay::levels::state] Checking level advance - Score: 1, Needed: 5, Current Level: 1, Max Levels: 3
+[2025-05-13T07:49:31Z DEBUG snake_game::core::state] New food generated at position: (17, 8)
+[2025-05-13T07:49:35Z DEBUG snake_game::core::state] Food collected! Score: 2, Level: 1
+[2025-05-13T07:49:35Z DEBUG snake_game::gameplay::levels::state] Checking level advance - Score: 2, Needed: 5, Current Level: 1, Max Levels: 3
+[2025-05-13T07:49:35Z DEBUG snake_game::core::state] New food generated at position: (19, 3)
+[2025-05-13T07:49:37Z DEBUG snake_game::core::state] Food collected! Score: 3, Level: 1
+[2025-05-13T07:49:37Z DEBUG snake_game::gameplay::levels::state] Checking level advance - Score: 3, Needed: 5, Current Level: 1, Max Levels: 3
+[2025-05-13T07:49:37Z DEBUG snake_game::core::state] New food generated at position: (16, 5)
+[2025-05-13T07:49:39Z DEBUG snake_game::core::state] Food collected! Score: 4, Level: 1
+[2025-05-13T07:49:39Z DEBUG snake_game::gameplay::levels::state] Checking level advance - Score: 4, Needed: 5, Current Level: 1, Max Levels: 3
+[2025-05-13T07:49:39Z DEBUG snake_game::core::state] New food generated at position: (31, 21)
+[2025-05-13T07:49:45Z DEBUG snake_game::core::state] Food collected! Score: 5, Level: 1
+[2025-05-13T07:49:45Z DEBUG snake_game::gameplay::levels::state] Checking level advance - Score: 5, Needed: 5, Current Level: 1, Max Levels: 3
+[2025-05-13T07:49:45Z DEBUG snake_game::gameplay::levels::state] Should advance to next level
+[2025-05-13T07:49:45Z DEBUG snake_game::core::state] Level 1 complete! Advancing to next level
+[2025-05-13T07:49:45Z DEBUG snake_game::gameplay::levels::state] Advanced to level 2
+[2025-05-13T07:49:45Z DEBUG snake_game::core::state] Preparing level 2 transition
+[2025-05-13T07:49:47Z DEBUG snake_game::core::state] Starting level 2
+[2025-05-13T07:49:47Z DEBUG snake_game::core::state] Resetting level 2
+[2025-05-13T07:49:47Z DEBUG snake_game::core::state] Generated 8 obstacles for level 2
+[2025-05-13T07:49:56Z DEBUG snake_game::core::state] Food collected! Score: 6, Level: 2
+[2025-05-13T07:49:56Z DEBUG snake_game::gameplay::levels::state] Checking level advance - Score: 6, Needed: 10, Current Level: 2, Max Levels: 3
+[2025-05-13T07:49:56Z DEBUG snake_game::core::state] New food generated at position: (39, 5)
+[2025-05-13T07:50:02Z DEBUG snake_game::core::state] Food collected! Score: 7, Level: 2
+[2025-05-13T07:50:02Z DEBUG snake_game::gameplay::levels::state] Checking level advance - Score: 7, Needed: 10, Current Level: 2, Max Levels: 3
+[2025-05-13T07:50:02Z DEBUG snake_game::core::state] New food generated at position: (11, 21)
+[2025-05-13T07:50:10Z DEBUG snake_game::core::state] Food collected! Score: 8, Level: 2
+[2025-05-13T07:50:10Z DEBUG snake_game::gameplay::levels::state] Checking level advance - Score: 8, Needed: 10, Current Level: 2, Max Levels: 3
+[2025-05-13T07:50:10Z DEBUG snake_game::core::state] New food generated at position: (24, 15)
+[2025-05-13T07:50:14Z DEBUG snake_game::core::state] Food collected! Score: 9, Level: 2
+[2025-05-13T07:50:14Z DEBUG snake_game::gameplay::levels::state] Checking level advance - Score: 9, Needed: 10, Current Level: 2, Max Levels: 3
+[2025-05-13T07:50:14Z DEBUG snake_game::core::state] New food generated at position: (29, 12)
+[2025-05-13T07:50:16Z DEBUG snake_game::core::state] Food collected! Score: 10, Level: 2
+[2025-05-13T07:50:16Z DEBUG snake_game::gameplay::levels::state] Checking level advance - Score: 10, Needed: 10, Current Level: 2, Max Levels: 3
+[2025-05-13T07:50:16Z DEBUG snake_game::gameplay::levels::state] Should advance to next level
+[2025-05-13T07:50:16Z DEBUG snake_game::core::state] Level 2 complete! Advancing to next level
+[2025-05-13T07:50:16Z DEBUG snake_game::gameplay::levels::state] Advanced to level 3
+[2025-05-13T07:50:16Z DEBUG snake_game::core::state] Preparing level 3 transition
+[2025-05-13T07:50:17Z DEBUG snake_game::core::state] Starting level 3
+[2025-05-13T07:50:17Z DEBUG snake_game::core::state] Resetting level 3
+[2025-05-13T07:50:17Z DEBUG snake_game::core::state] Generated 10 obstacles for level 3
+[2025-05-13T07:50:27Z DEBUG snake_game::core::state] Food collected! Score: 11, Level: 3
+[2025-05-13T07:50:27Z DEBUG snake_game::gameplay::levels::state] Checking level advance - Score: 11, Needed: 15, Current Level: 3, Max Levels: 3
+[2025-05-13T07:50:27Z DEBUG snake_game::core::state] New food generated at position: (5, 14)
+[2025-05-13T07:50:36Z DEBUG snake_game::core::state] Food collected! Score: 12, Level: 3
+[2025-05-13T07:50:36Z DEBUG snake_game::gameplay::levels::state] Checking level advance - Score: 12, Needed: 15, Current Level: 3, Max Levels: 3
+[2025-05-13T07:50:36Z DEBUG snake_game::core::state] New food generated at position: (34, 21)
+[2025-05-13T07:50:43Z DEBUG snake_game::core::state] Food collected! Score: 13, Level: 3
+[2025-05-13T07:50:43Z DEBUG snake_game::gameplay::levels::state] Checking level advance - Score: 13, Needed: 15, Current Level: 3, Max Levels: 3
+[2025-05-13T07:50:43Z DEBUG snake_game::core::state] New food generated at position: (19, 6)
+[2025-05-13T07:50:49Z DEBUG snake_game::core::state] Food collected! Score: 14, Level: 3
+[2025-05-13T07:50:49Z DEBUG snake_game::gameplay::levels::state] Checking level advance - Score: 14, Needed: 15, Current Level: 3, Max Levels: 3
+[2025-05-13T07:50:49Z DEBUG snake_game::core::state] New food generated at position: (32, 20)
+[2025-05-13T07:50:56Z DEBUG snake_game::core::state] Food collected! Score: 15, Level: 3
+[2025-05-13T07:50:56Z DEBUG snake_game::gameplay::levels::state] Checking level advance - Score: 15, Needed: 15, Current Level: 3, Max Levels: 3
+[2025-05-13T07:50:56Z DEBUG snake_game::core::state] Final level complete! Victory!

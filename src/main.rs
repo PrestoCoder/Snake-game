@@ -46,10 +46,10 @@ fn main() -> CrosstermResult<()> {
 
 fn run_game() -> Result<()> {
     // Load configuration
-    let config = Config::load()?;
+    let config = Config::new();
     
     // Initialize game components
-    let mut game_state = GameState::new(&config);
+    let mut game_state = GameState::new();
     let mut renderer = Renderer::new(config.width, config.height);
     let input_handler = InputHandler::new();
 

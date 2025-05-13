@@ -1,8 +1,8 @@
 use crate::{
-    utils::{Result, GameError, constants::*},
+    utils::{Result, GameError},
     entities::{Direction, Point, Obstacle, Food},
     gameplay::{GameState as GameStateEnum, GameEndReason, Snake, levels::{LevelState, get_level_pattern}},
-    config::Config,
+    config::*,  // Import all constants from config
 };
 use log::debug;
 
@@ -19,23 +19,23 @@ pub struct GameState {
 }
 
 impl GameState {
-    pub fn new(config: &Config) -> Self {
-        let dimensions = (config.width, config.height);
+    pub fn new() -> Self {
+        let dimensions = (WIDTH, HEIGHT);  // Use constants directly
         let level_state = LevelState::new(
-            config.starting_level,
-            config.max_levels,
-            config.score_per_level
+            STARTING_LEVEL,
+            MAX_LEVELS,
+            SCORE_PER_LEVEL
         );
 
         debug!("Initializing game with dimensions: {}x{}", dimensions.0, dimensions.1);
         debug!("Level settings - Start: {}, Max: {}, Score per level: {}", 
-            config.starting_level, config.max_levels, config.score_per_level);
+            STARTING_LEVEL, MAX_LEVELS, SCORE_PER_LEVEL);
 
         let mut state = Self {
-            snake: Snake::new(config.width / 2, config.height / 2),
+            snake: Snake::new(WIDTH / 2, HEIGHT / 2),
             food: Food::new(Point::new(0, 0)),
             score_manager: super::ScoreManager::new(),
-            collision_manager: super::CollisionManager::new(config.width, config.height),
+            collision_manager: super::CollisionManager::new(WIDTH, HEIGHT),
             dimensions,
             state: GameStateEnum::Playing,
             obstacles: Vec::new(),
