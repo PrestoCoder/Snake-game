@@ -1,8 +1,14 @@
 use crate::{
     utils::{Result, GameError},
     entities::{Direction, Point, Obstacle, Food},
-    gameplay::{GameState as GameStateEnum, GameEndReason, Snake, levels::{LevelState, get_level_pattern}},
-    config::*,  // Import all constants from config
+    gameplay::{
+        GameState as GameStateEnum, 
+        GameEndReason, 
+        Snake, 
+        LevelState,
+        get_level_pattern
+    },
+    config::*,
 };
 use log::debug;
 
