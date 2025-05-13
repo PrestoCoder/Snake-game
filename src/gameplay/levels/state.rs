@@ -1,4 +1,4 @@
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone)]
 pub struct LevelState {
     pub current_level: u32,
     pub max_levels: u32,

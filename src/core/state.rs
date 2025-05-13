@@ -1,13 +1,12 @@
+use std::collections::VecDeque;
+use rand::Rng;
+
 use crate::{
-    error::{GameError, Result},
-    types::{Direction, Point, Obstacle, GameEndReason, GameState as GameStateEnum, LevelState},
+    utils::{Result, GameError, constants::*},
+    entities::{Direction, Point, Obstacle},
+    gameplay::{GameState as GameStateEnum, GameEndReason, levels::{LevelState, get_level_pattern}},
     config::Config,
 };
-use rand::Rng;  // Add this import
-use std::collections::VecDeque;
-
-const BORDER_THICKNESS: u16 = 2;
-const BASE_SPEED_LEVEL: u32 = 1;
 
 pub struct GameState {
     snake: VecDeque<Point>,
@@ -35,7 +34,7 @@ impl GameState {
 
         let mut state = Self {
             snake: VecDeque::new(),
-            food: Point::new(0, 0),  // Temporary value
+            food: Point::new(0, 0),
             direction: Direction::Right,
             score: 0,
             dimensions: (config.width, config.height),
@@ -54,86 +53,48 @@ impl GameState {
     }
 
     fn reset_level(&mut self) {
-        // Reset snake position
         self.snake.clear();
         let center_x = self.dimensions.0 / 2;
         let center_y = self.dimensions.1 / 2;
         
-        // Initialize snake with 3 segments
         self.snake.push_back(Point::new(center_x - 2, center_y));
         self.snake.push_back(Point::new(center_x - 1, center_y));
         self.snake.push_back(Point::new(center_x, center_y));
 
-        // Reset direction
         self.direction = Direction::Right;
-
-        // Reset speed for new level
         self.speed_level = BASE_SPEED_LEVEL;
 
-        // Generate new obstacles
-        self.obstacles = Self::generate_obstacles(
-            self.dimensions.0,
-            self.dimensions.1,
-            self.base_obstacles,
-            self.obstacles_per_level,
+        // Generate new obstacles using pattern
+        let pattern = get_level_pattern(
             self.level_state.current_level,
-            &self.obstacle_sizes,
-        );
-
-        // Generate new food
-        self.food = Self::generate_food_avoiding_all(
             self.dimensions.0,
-            self.dimensions.1,
-            &self.snake,
-            &self.obstacles,
+            self.dimensions.1
         );
+
+        self.obstacles = pattern.positions.iter().zip(pattern.sizes.iter())
+            .map(|((x, y), (w, h))| Obstacle::new_rectangle(Point::new(*x, *y), *w, *h))
+            .collect();
+
+        self.food = self.generate_food();
     }
 
-    fn generate_obstacles(
-        width: u16,
-        height: u16,
-        _base_count: u32,
-        _per_level: u32,
-        current_level: u32,
-        _sizes: &[u16],
-    ) -> Vec<Obstacle> {
-        let pattern = crate::patterns::get_level_pattern(current_level, width, height);
-        let mut obstacles = Vec::new();
-
-        // Create obstacles based on the pattern
-        for ((x, y), (width, height)) in pattern.positions.iter().zip(pattern.sizes.iter()) {
-            obstacles.push(Obstacle::new_rectangle(
-                Point::new(*x, *y),
-                *width,
-                *height
-            ));
-        }
-
-        obstacles
-    }
-
-    fn generate_food_avoiding_all(
-        width: u16, 
-        height: u16, 
-        snake: &VecDeque<Point>,
-        obstacles: &[Obstacle],
-    ) -> Point {
+    fn generate_food(&self) -> Point {
         let mut rng = rand::thread_rng();
         
         loop {
             let food = Point::new(
-                rng.gen_range(BORDER_THICKNESS..width - BORDER_THICKNESS),
-                rng.gen_range(BORDER_THICKNESS..height - BORDER_THICKNESS),
+                rng.gen_range(BORDER_THICKNESS..self.dimensions.0 - BORDER_THICKNESS),
+                rng.gen_range(BORDER_THICKNESS..self.dimensions.1 - BORDER_THICKNESS),
             );
             
-            if !snake.contains(&food) && !Self::is_obstacle_collision(&food, obstacles) {
+            if !self.snake.contains(&food) && !self.is_obstacle_collision(&food) {
                 return food;
             }
         }
     }
 
-    fn is_obstacle_collision(point: &Point, obstacles: &[Obstacle]) -> bool {
-        obstacles.iter().any(|obstacle| obstacle.collides_with(point))
+    fn is_obstacle_collision(&self, point: &Point) -> bool {
+        self.obstacles.iter().any(|obstacle| obstacle.collides_with(point))
     }
 
     pub fn update(&mut self) -> Result<()> {
@@ -152,7 +113,7 @@ impl GameState {
 
         if self.is_wall_collision(&new_head) || 
            self.is_self_collision() ||
-           Self::is_obstacle_collision(&new_head, &self.obstacles) {
+           self.is_obstacle_collision(&new_head) {
             self.state = GameStateEnum::GameOver(GameEndReason::Collision);
             return Ok(());
         }
@@ -175,12 +136,7 @@ impl GameState {
                 return Ok(());
             }
 
-            self.food = Self::generate_food_avoiding_all(
-                self.dimensions.0,
-                self.dimensions.1,
-                &self.snake,
-                &self.obstacles,
-            );
+            self.food = self.generate_food();
         } else {
             self.snake.pop_front();
         }
@@ -203,15 +159,11 @@ impl GameState {
     }
 
     pub fn get_tick_rate(&self) -> u64 {
-        let base_speed: u64 = 200;
-        let speed_decrease: u64 = 10;
-        let min_speed: u64 = 50;
-
-        base_speed.saturating_sub(speed_decrease * (self.speed_level - 1) as u64)
-            .max(min_speed)
+        BASE_TICK_RATE.saturating_sub(SPEED_DECREASE_PER_LEVEL * (self.speed_level - 1))
+            .max(MIN_SPEED)
     }
 
-    pub fn is_wall_collision(&self, point: &Point) -> bool {
+    fn is_wall_collision(&self, point: &Point) -> bool {
         point.x < BORDER_THICKNESS || 
         point.x >= self.dimensions.0 - BORDER_THICKNESS || 
         point.y < BORDER_THICKNESS || 

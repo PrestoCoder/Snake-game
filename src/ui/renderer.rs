@@ -1,7 +1,8 @@
 use crate::{
-    error::Result,
-    game::GameState,
-    types::{Point, Obstacle, GameEndReason, GameState as GameStateEnum},
+    utils::Result,
+    core::GameState,
+    entities::{Point, Obstacle},
+    gameplay::GameEndReason,
 };
 use crossterm::{
     cursor::{Hide, MoveTo, Show},
@@ -11,8 +12,7 @@ use crossterm::{
     QueueableCommand,
 };
 use std::io::{stdout, Write, Stdout};
-
-const BORDER_THICKNESS: u16 = 2;
+use crate::utils::constants::BORDER_THICKNESS;
 
 pub struct Renderer {
     dimensions: (u16, u16),
@@ -49,7 +49,7 @@ impl Renderer {
         self.stdout.queue(Clear(ClearType::All))?;
         
         match game_state.game_state() {
-            GameStateEnum::Playing => {
+            gameplay::GameState::Playing => {
                 self.draw_borders()?;
                 self.draw_obstacles(game_state.obstacles())?;
                 
@@ -60,10 +60,10 @@ impl Renderer {
                 self.draw_point(game_state.food(), Color::Red, Color::Reset, "●")?;
                 self.draw_score(game_state)?;
             }
-            GameStateEnum::LevelTransition => {
+            gameplay::GameState::LevelTransition => {
                 self.draw_level_transition(game_state)?;
             }
-            GameStateEnum::GameOver(reason) => {
+            gameplay::GameState::GameOver(reason) => {
                 self.draw_game_over(game_state, reason)?;
             }
         }
@@ -116,7 +116,7 @@ impl Renderer {
         Ok(())
     }
 
-    fn draw_obstacles(&mut self, obstacles: &Vec<Obstacle>) -> Result<()> {
+    fn draw_obstacles(&mut self, obstacles: &[Obstacle]) -> Result<()> {
         for obstacle in obstacles {
             for point in &obstacle.blocks {
                 self.draw_point(point, Color::DarkGrey, Color::DarkGrey, "█")?;

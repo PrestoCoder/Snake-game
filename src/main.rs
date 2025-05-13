@@ -1,9 +1,10 @@
 use snake_game::{
-    engine::{Renderer, InputHandler},
-    game::GameState,
+    ui::{Renderer, InputHandler},
+    core::GameState,
     config::Config,
-    error::Result,
-    types::{Direction, GameState as GameStateEnum},
+    utils::Result,
+    entities::Direction,
+    gameplay::GameState as GameStateEnum,
 };
 use std::{
     time::{Duration, Instant},

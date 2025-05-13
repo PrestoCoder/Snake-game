@@ -1,6 +1,6 @@
 use crossterm::event::{poll, read, Event, KeyCode};
 use std::time::Duration;
-use crate::error::Result;
+use crate::utils::Result;
 
 pub struct InputHandler;
 

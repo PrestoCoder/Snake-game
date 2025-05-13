@@ -1,8 +1,8 @@
-pub mod error;
+pub mod core;
+pub mod gameplay;
+pub mod ui;
+pub mod entities;
 pub mod config;
-pub mod game;
-pub mod engine;
-pub mod types;
-pub mod patterns;
+pub mod utils;
 
-pub use error::{Result, GameError};
+pub use utils::error::{Result, GameError};
