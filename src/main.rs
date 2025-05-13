@@ -3,6 +3,7 @@ use snake_game::{
     game::GameState,
     config::Config,
     error::Result,
+    types::{Direction, GameState as GameStateEnum},
 };
 use std::{
     time::{Duration, Instant},
@@ -10,6 +11,7 @@ use std::{
 };
 use crossterm::{
     terminal::{enable_raw_mode, disable_raw_mode},
+    event::KeyCode,
     Result as CrosstermResult,
 };
 
@@ -50,19 +52,58 @@ fn run_game() -> Result<()> {
     let mut last_tick = Instant::now();
     let mut last_render = Instant::now();
 
-    while !game_state.is_game_over() {
+    while !matches!(game_state.game_state(), GameStateEnum::GameOver(_)) {
         // Handle input
-        if let Some(direction) = input_handler.get_input()? {
-            game_state.change_direction(direction);
+        if let Ok(Some(key)) = input_handler.get_input() {
+            match game_state.game_state() {
+                GameStateEnum::Playing => {
+                    match key {
+                        KeyCode::Up | KeyCode::Char('w') | KeyCode::Char('W') => {
+                            game_state.change_direction(Direction::Up);
+                        }
+                        KeyCode::Down | KeyCode::Char('s') | KeyCode::Char('S') => {
+                            game_state.change_direction(Direction::Down);
+                        }
+                        KeyCode::Left | KeyCode::Char('a') | KeyCode::Char('A') => {
+                            game_state.change_direction(Direction::Left);
+                        }
+                        KeyCode::Right | KeyCode::Char('d') | KeyCode::Char('D') => {
+                            game_state.change_direction(Direction::Right);
+                        }
+                        KeyCode::Char('q') | KeyCode::Char('Q') => break,
+                        _ => {}
+                    }
+                }
+                GameStateEnum::LevelTransition => {
+                    match key {
+                        KeyCode::Char(' ') => game_state.start_next_level(),
+                        KeyCode::Char('q') | KeyCode::Char('Q') => break,
+                        _ => {}
+                    }
+                }
+                GameStateEnum::GameOver(_) => {
+                    if matches!(key, KeyCode::Char('q') | KeyCode::Char('Q')) {
+                        break;
+                    }
+                }
+            }
         }
 
-        // Get current tick rate based on speed level
-        let current_tick_rate = Duration::from_millis(game_state.get_tick_rate());
+        match game_state.game_state() {
+            GameStateEnum::Playing => {
+                // Get current tick rate based on speed level
+                let current_tick_rate = Duration::from_millis(game_state.get_tick_rate());
 
-        // Update game state at current speed
-        if last_tick.elapsed() >= current_tick_rate {
-            game_state.update()?;
-            last_tick = Instant::now();
+                // Update game state at current speed
+                if last_tick.elapsed() >= current_tick_rate {
+                    game_state.update()?;
+                    last_tick = Instant::now();
+                }
+            }
+            _ => {
+                // For transitions and game over, just update without timing
+                game_state.update()?;
+            }
         }
 
         // Render at frame rate
@@ -75,11 +116,11 @@ fn run_game() -> Result<()> {
         thread::sleep(Duration::from_millis(16));
     }
 
-    // Show game over screen
+    // Show final state
     renderer.render(&game_state)?;
     
     // Wait for a moment before exit
-    thread::sleep(Duration::from_secs(2));
+    thread::sleep(Duration::from_secs(1));
 
     // Cleanup
     renderer.cleanup()?;

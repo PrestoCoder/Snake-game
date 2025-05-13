@@ -1,7 +1,7 @@
 use crate::{
     error::Result,
     game::GameState,
-    types::{Point, Obstacle, GameEndReason},
+    types::{Point, Obstacle, GameEndReason, GameState as GameStateEnum},
 };
 use crossterm::{
     cursor::{Hide, MoveTo, Show},
@@ -48,19 +48,24 @@ impl Renderer {
     pub fn render(&mut self, game_state: &GameState) -> Result<()> {
         self.stdout.queue(Clear(ClearType::All))?;
         
-        self.draw_borders()?;
-        self.draw_obstacles(game_state.obstacles())?;
-        
-        for point in game_state.snake() {
-            self.draw_point(point, Color::Green, Color::Reset, "█")?;
-        }
-        
-        self.draw_point(game_state.food(), Color::Red, Color::Reset, "●")?;
-        
-        self.draw_score(game_state)?;
-
-        if game_state.is_game_over() {
-            self.draw_game_over(game_state)?;
+        match game_state.game_state() {
+            GameStateEnum::Playing => {
+                self.draw_borders()?;
+                self.draw_obstacles(game_state.obstacles())?;
+                
+                for point in game_state.snake() {
+                    self.draw_point(point, Color::Green, Color::Reset, "█")?;
+                }
+                
+                self.draw_point(game_state.food(), Color::Red, Color::Reset, "●")?;
+                self.draw_score(game_state)?;
+            }
+            GameStateEnum::LevelTransition => {
+                self.draw_level_transition(game_state)?;
+            }
+            GameStateEnum::GameOver(reason) => {
+                self.draw_game_over(game_state, reason)?;
+            }
         }
 
         self.stdout.flush()?;
@@ -68,7 +73,6 @@ impl Renderer {
     }
 
     fn draw_borders(&mut self) -> Result<()> {
-        // Set border color
         self.stdout
             .queue(SetForegroundColor(Color::Blue))?
             .queue(SetBackgroundColor(Color::Blue))?;
@@ -105,7 +109,6 @@ impl Renderer {
             }
         }
 
-        // Reset colors
         self.stdout
             .queue(SetForegroundColor(Color::Reset))?
             .queue(SetBackgroundColor(Color::Reset))?;
@@ -159,41 +162,98 @@ impl Renderer {
         Ok(())
     }
 
-    fn draw_game_over(&mut self, game_state: &GameState) -> Result<()> {
-        let message = match game_state.end_reason() {
-            Some(GameEndReason::Victory) => format!(" VICTORY! Final Score: {} ", game_state.score()),
-            _ => " GAME OVER! Press any key to exit ".to_string(),
-        };
+    fn draw_level_transition(&mut self, game_state: &GameState) -> Result<()> {
+        let message = game_state.transition_message();
+        let lines: Vec<&str> = message.split('\n').collect();
+        
+        let y_start = (self.dimensions.1 / 2) - (lines.len() as u16 / 2);
 
-        let x = (self.dimensions.0 - message.len() as u16) / 2;
-        let y = self.dimensions.1 / 2;
+        // Draw a box around the transition message
+        let max_width = lines.iter().map(|line| line.len()).max().unwrap_or(0) as u16;
+        let padding = 2;
+        let box_width = max_width + (padding * 2);
+        let box_height = lines.len() as u16 + (padding * 2);
+        let box_x = (self.dimensions.0 - box_width) / 2;
+        let box_y = y_start - padding;
 
-        // Use green for victory, red for game over
-        let bg_color = match game_state.end_reason() {
-            Some(GameEndReason::Victory) => Color::Green,
-            _ => Color::Red,
-        };
-
-        self.stdout
-            .queue(MoveTo(x, y))?
-            .queue(SetForegroundColor(Color::White))?
-            .queue(SetBackgroundColor(bg_color))?
-            .queue(Print(&message))?
-            .queue(SetBackgroundColor(Color::Reset))?;
-
-        // Show target score for current level
-        if let Some(next_score) = game_state.score_needed_for_next() {
-            let target_text = format!(" Target Score: {} ", next_score);
-            let tx = (self.dimensions.0 - target_text.len() as u16) / 2;
-            
-            self.stdout
-                .queue(MoveTo(tx, y - 2))?
-                .queue(SetForegroundColor(Color::White))?
-                .queue(SetBackgroundColor(Color::DarkBlue))?
-                .queue(Print(&target_text))?
-                .queue(SetBackgroundColor(Color::Reset))?;
+        // Draw box background
+        for y in 0..box_height {
+            for x in 0..box_width {
+                self.stdout
+                    .queue(MoveTo(box_x + x, box_y + y))?
+                    .queue(SetBackgroundColor(Color::DarkBlue))?
+                    .queue(Print(" "))?;
+            }
         }
 
+        // Draw message
+        for (i, line) in lines.iter().enumerate() {
+            let x = (self.dimensions.0 - line.len() as u16) / 2;
+            let y = y_start + i as u16;
+
+            self.stdout
+                .queue(MoveTo(x, y))?
+                .queue(SetForegroundColor(Color::White))?
+                .queue(Print(line))?;
+        }
+
+        self.stdout.queue(SetBackgroundColor(Color::Reset))?;
+        Ok(())
+    }
+
+    fn draw_game_over(&mut self, game_state: &GameState, reason: GameEndReason) -> Result<()> {
+        let message = match reason {
+            GameEndReason::Victory => format!(
+                "VICTORY!\nFinal Score: {}\nAll {} Levels Complete!\nPress 'q' to quit",
+                game_state.score(),
+                game_state.max_levels()
+            ),
+            GameEndReason::Collision => format!(
+                "GAME OVER!\nFinal Score: {}\nLevel {} of {}\nPress 'q' to quit",
+                game_state.score(),
+                game_state.current_level(),
+                game_state.max_levels()
+            ),
+        };
+
+        let lines: Vec<&str> = message.split('\n').collect();
+        let y_start = (self.dimensions.1 / 2) - (lines.len() as u16 / 2);
+
+        let bg_color = match reason {
+            GameEndReason::Victory => Color::Green,
+            GameEndReason::Collision => Color::Red,
+        };
+
+        // Draw a box around the game over message
+        let max_width = lines.iter().map(|line| line.len()).max().unwrap_or(0) as u16;
+        let padding = 2;
+        let box_width = max_width + (padding * 2);
+        let box_height = lines.len() as u16 + (padding * 2);
+        let box_x = (self.dimensions.0 - box_width) / 2;
+        let box_y = y_start - padding;
+
+        // Draw box background
+        for y in 0..box_height {
+            for x in 0..box_width {
+                self.stdout
+                    .queue(MoveTo(box_x + x, box_y + y))?
+                    .queue(SetBackgroundColor(bg_color))?
+                    .queue(Print(" "))?;
+            }
+        }
+
+        // Draw message
+        for (i, line) in lines.iter().enumerate() {
+            let x = (self.dimensions.0 - line.len() as u16) / 2;
+            let y = y_start + i as u16;
+
+            self.stdout
+                .queue(MoveTo(x, y))?
+                .queue(SetForegroundColor(Color::White))?
+                .queue(Print(line))?;
+        }
+
+        self.stdout.queue(SetBackgroundColor(Color::Reset))?;
         Ok(())
     }
 }
