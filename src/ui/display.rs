@@ -1,10 +1,10 @@
-// display.rs
+// src/ui/display.rs
 use crossterm::{
     style::{Color, SetForegroundColor, SetBackgroundColor},
     cursor::MoveTo,
     QueueableCommand,
 };
-use std::io::{Stdout, Write}; 
+use std::io::{Stdout, Write};
 use crate::utils::Result;
 use crate::entities::Point;
 
@@ -18,14 +18,13 @@ impl DisplayManager {
         Self { width, height }
     }
 
-    // New method to clear the entire screen
     pub fn clear_screen(&self, stdout: &mut Stdout) -> Result<()> {
-        for y in 0..self.height {
+        // Simple clear - just fill with spaces
+        for y in 0..=self.height {
             for x in 0..self.width {
                 stdout
                     .queue(MoveTo(x, y))?
                     .queue(SetBackgroundColor(Color::Reset))?
-                    .queue(SetForegroundColor(Color::Reset))?
                     .queue(crossterm::style::Print(" "))?;
             }
         }
@@ -33,7 +32,6 @@ impl DisplayManager {
         Ok(())
     }
 
-    // New method to draw a single character
     pub fn draw_char(
         &self,
         stdout: &mut Stdout,
@@ -59,9 +57,6 @@ impl DisplayManager {
         bg_color: Color,
         fg_color: Color,
     ) -> Result<()> {
-        // Clear screen first
-        self.clear_screen(stdout)?;
-
         let lines: Vec<&str> = text.split('\n').collect();
         let y_start = (self.height / 2) - (lines.len() as u16 / 2);
 
@@ -116,9 +111,8 @@ impl DisplayManager {
         }
 
         // Draw the text
-        let x = 2;
         stdout
-            .queue(MoveTo(x, self.height))?
+            .queue(MoveTo(2, self.height))?
             .queue(SetForegroundColor(fg_color))?
             .queue(SetBackgroundColor(bg_color))?
             .queue(crossterm::style::Print(text))?;

@@ -6,7 +6,6 @@ pub struct ObstaclePattern {
 }
 
 pub fn get_level_pattern(level: u32, width: u16, height: u16) -> ObstaclePattern {
-    let obstacle_count = (level + 1).pow(2);  // Perfect square: 4, 9, 16, ...
     let grid_size = (level + 1) as u16;       // 2x2 for level 1, 3x3 for level 2, 4x4 for level 3, ...
 
     // Calculate margins to leave space around edges
