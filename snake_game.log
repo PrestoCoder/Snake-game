@@ -965,3 +965,12 @@
 [2025-05-13T21:30:13Z DEBUG snake_game::core::state] Food collected! Score: 15, Level: 3
 [2025-05-13T21:30:13Z DEBUG snake_game::gameplay::level_state] Checking level advance - Score: 15, Needed: 15, Current Level: 3, Max Levels: 3
 [2025-05-13T21:30:13Z DEBUG snake_game::core::state] Final level complete! Victory!
+[2025-05-13T22:19:27Z DEBUG snake_game::core::state] Initializing game with dimensions: 50x25
+[2025-05-13T22:19:27Z DEBUG snake_game::core::state] Level settings - Start: 1, Max: 3, Score per level: 5
+[2025-05-13T22:19:27Z DEBUG snake_game::core::state] Resetting level 1
+[2025-05-13T22:19:27Z DEBUG snake_game::core::state] Generated 4 obstacles for level 1
+[2025-05-13T22:19:27Z DEBUG snake_game::core::state] New food generated at position: (18, 17)
+[2025-05-13T22:19:33Z DEBUG snake_game::core::state] Food collected! Score: 1, Level: 1
+[2025-05-13T22:19:33Z DEBUG snake_game::gameplay::level_state] Checking level advance - Score: 1, Needed: 5, Current Level: 1, Max Levels: 3
+[2025-05-13T22:19:33Z DEBUG snake_game::core::state] New food generated at position: (42, 17)
+[2025-05-13T22:19:37Z DEBUG snake_game::core::state] Collision detected - Game Over
